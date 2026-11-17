@@ -169,7 +169,7 @@ Game.prototype.timeTick = function() {
         this.remainingTime = this.allottedTime - this.currentTime;
         if (this.remainingTime <= 0) {
             this.remainingTime = 0;
-            this.messages.push("Time is up!");
+            this.addMessage("Time is up!");
             this.gameState = this.GameState.STOP;
         }
         this.currentTime++;
@@ -385,8 +385,8 @@ Game.prototype.isValidMove=function(a,b) {
 }
 
 Game.prototype.doPlay = function() {
+
     Graphics.clrscr(this.ctx, palette[0]);
-    Graphics.fillRect(this.ctx,0,0,canvas.width,canvas.height,palette[10]);
 
     this.hudFont.fillText(this.ctx,"SCORE "+this.score.toString().padStart(7,' '),4,4,palette[12]);
 
@@ -443,8 +443,24 @@ Game.prototype.doPlay = function() {
 
 }
 
-Game.prototype.doEnd = function() {
-    Graphics.clrscr(this.ctx, palette[0]);
+Game.prototype.doStop = function() {
+
+    Graphics.clrscr(this.ctx,palette[10]);    
+
+    this.hudFont.fillText(this.ctx,"SCORE "+this.score.toString().padStart(7,' '),4,4,palette[12]);
+
+	var minutes = Math.floor(this.remainingTime / 60).toString().padStart(2, " ");
+	var seconds = (this.remainingTime % 60).toString().padStart(2, "0");
+	this.hudFont.fillText(this.ctx, "TIME  " + (minutes + ":" + seconds).padStart(7, ' '), 4, 16+4, palette[12]);
+
+    if(this.messages.length>0) {
+        for(var i=0;i<this.messages.length;i++) {
+            this.messageFont.fillText(this.ctx,this.messages[i],4,i*16+16*3,palette[12]);
+        }
+    }
+
+    this.hudFont.fillText(this.ctx,"Game Over",(this.canvas.width-9*16)/2,16*12,palette[12]);
+
 }
 
 Game.prototype.draw = function() {
@@ -460,7 +476,7 @@ Game.prototype.draw = function() {
             this.doPlay();
             break;
         case this.GameState.STOP:
-            this.doEnd();
+            this.doStop();
             break;
         default:
             break;
