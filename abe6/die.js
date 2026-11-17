@@ -12,6 +12,7 @@ Die = function(font, letter, x, y, s) {
     this.state = this.DieState.UP;
     this.isPressed = false;
     this.isClicked = false;
+    this.isUsed = false;
 
     this.letter=letter;
     this.font=font;
@@ -40,6 +41,7 @@ Die.prototype.handleEvents = function(pointer) {
 };
 
 Die.prototype.draw = function(ctx) {
+
     switch (this.state) {
         case this.DieState.UP:
             ctx.fillStyle = palette[10];
@@ -52,6 +54,7 @@ Die.prototype.draw = function(ctx) {
             break;
     }
 
+    if(this.isUsed) ctx.fillStyle = palette[9];
 
     ctx.fillRect(this.x-this.s/2, this.y-this.s/2, this.s, this.s);
 

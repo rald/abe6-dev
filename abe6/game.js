@@ -15,11 +15,15 @@ Game = function(canvasId) {
         { id: 'triangle', type: 'image', src: "assets/triangle.png" },
         { id: 'square', type: 'image', src: "assets/square.png" },
         { id: 'sono', family: 'sono', type: 'font', src: "assets/sono/web/Sono-Bold.woff2" },
+        { id: 'PressStart2P', family: 'PressStart2P', type: 'font', src: "assets/PressStart2P/PressStart2P.ttf" },
         { id: 'wordlist', type: 'text', src: 'assets/wordlist.txt' }
     ];
 
     this.allottedTime = 180;
+    this.currentTime = 0;
     this.remainingTime = 0;
+
+    this.score = 0;
 
     this.gameState = this.GameState.LOAD;
 	this.handler = new PointerHandler(canvas);
@@ -36,15 +40,23 @@ Game = function(canvasId) {
 
     this.messages=[];
     this.messageTicks=0;
-    this.messageDelay=0;
+    this.messageDelay=3;
 
 	this.timeTickInterval=null;
 
+    this.dice=null;
+    this.die=null;
     this.trie=null;    
     this.board=null;
     this.words=null;
-    this.dice=null;
-    this.die=null;
+    this.guessed=null;
+    this.word="";
+    this.lastDieIndex=-1;
+
+    this.diceFont=null;
+    this.hudFont=null;
+    this.messageFont=null;
+        
 };
 
 Game.prototype.drawProgressBar = function(percent) {
@@ -193,6 +205,8 @@ Game.prototype.doPreload = function() {
             }
 
             this.diceFont=new Font("16px sono","center","middle");
+            this.hudFont=new Font("16px PressStart2P","left","top");
+            this.messageFont=new Font("8px PressStart2P","left","top");
 
             this.gameState = this.GameState.INIT;
         }
@@ -223,7 +237,7 @@ Game.prototype.generateBoggleBoard=function() {
   }
 }
 
-function scoreWord(word) {
+Game.scoreWord = function(word) {
   var length = word.length;
   if (length < 3) {
     return 0;
@@ -257,9 +271,9 @@ Game.prototype.getBoggleWords=function(board, trie) {
   }
 
   var directions = [
-    [-1, -1], [-1, 0], [-1, 1],
-    [0, -1],           [0, 1],
-    [1, -1],  [1, 0],  [1, 1]
+    [-1,-1], [-1, 0], [-1, 1],
+    [ 0,-1],          [ 0, 1],
+    [ 1,-1], [ 1, 0], [ 1, 1]
   ];
 
   function dfs(r, c, node, currentWord) {
@@ -301,7 +315,7 @@ Game.prototype.getBoggleWords=function(board, trie) {
 
   this.words = Object.keys(foundWordsMap);
   this.words.sort(function (a, b) {
-    var scoreDiff = scoreWord(b) - scoreWord(a);
+    var scoreDiff = Game.scoreWord(b) - Game.scoreWord(a);
     if (scoreDiff !== 0) {
       return scoreDiff;
     }
@@ -316,7 +330,6 @@ Game.prototype.getBoggleWords=function(board, trie) {
 
 }
 
-
 Game.prototype.doInit = function() {
     this.messages=[];
     this.messagesTicks=0;
@@ -325,7 +338,12 @@ Game.prototype.doInit = function() {
     this.generateBoggleBoard();
     this.getBoggleWords(this.board,this.trie);
 
-    console.log(this.words);
+    this.guessed=[];
+    for(var i=0;i<this.guessed.length;i++) {
+        this.guessed.push(false);
+    }
+
+    console.table(this.words);
 
     this.die=[];
     for(var j=0;j<this.board.length;j++) {
@@ -338,21 +356,90 @@ Game.prototype.doInit = function() {
             var x=i*(s+g)+Math.floor(s/2)+s/2+cx;
             var y=j*(s+g)+Math.floor(s/2)+s/2+cy;                         
 
-            this.die.push(new Die(this.diceFont,this.board[j][i],x,y,s));
+            this.die.push(new Die(this.diceFont,this.board[j][i].toUpperCase(),x,y,s));
         }    
     }   
 
+    
+    this.currentTime=0;
     this.gameState=this.GameState.PLAY;
+}
+
+Game.prototype.isValidMove=function(a,b) {
+    if(this.die[b].isUsed) return false;
+    for(var j=-1;j<=1;j++) {
+        for(var i=-1;i<=1;i++) {
+            if(i || j) {
+                var x=a%4+i;
+                var y=Math.floor(a/4)+j;
+                if(x>=0 && x<=3 && y>=0 && y<=3) {
+                    var k=y*4+x;
+                    if(k===b) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    return false;
 }
 
 Game.prototype.doPlay = function() {
     Graphics.clrscr(this.ctx, palette[0]);
     Graphics.fillRect(this.ctx,0,0,canvas.width,canvas.height,palette[10]);
 
+    this.hudFont.fillText(this.ctx,"SCORE "+this.score.toString().padStart(7,' '),4,4,palette[12]);
+
+	var minutes = Math.floor(this.remainingTime / 60).toString().padStart(2, " ");
+	var seconds = (this.remainingTime % 60).toString().padStart(2, "0");
+	this.hudFont.fillText(this.ctx, "TIME  " + (minutes + ":" + seconds).padStart(7, ' '), 4, 16+4, palette[12]);
+
+    if(this.messages.length>0) {
+        for(var i=0;i<this.messages.length;i++) {
+            this.messageFont.fillText(this.ctx,this.messages[i],4,i*16+16*3,palette[12]);
+        }
+    }
+
+    this.hudFont.fillText(this.ctx,this.word,(this.canvas.width-this.word.length*16)/2,16*12,palette[12]);
+
+
     for(var i=0;i<this.die.length;i++) {
         this.die[i].handleEvents(pointer);
         this.die[i].draw(this.ctx);
+
+        if(this.die[i].isClicked) {
+            if(this.lastDieIndex===-1 || this.isValidMove(this.lastDieIndex,i)) {
+                this.word+=this.die[i].letter;
+                this.die[i].isUsed=true;
+                this.lastDieIndex=i;
+            } else {
+                console.log(this.word);
+
+                var k=this.words.indexOf(this.word);
+                if(k!==-1) {
+                    if(this.guessed[k]) {
+                        this.addMessage("\""+this.word+"\" guessed.");
+                    } else {
+                        this.guessed[k]=true;
+                        this.points=Game.scoreWord(this.word);
+                        this.score+=this.points;
+                        this.addMessage("Plus "+this.points+" points.");
+                    }
+                } else {
+                    this.addMessage("\""+this.word+"\" not found.");
+                }
+
+                this.word="";
+                for(var i=0;i<this.die.length;i++) {
+                    if(this.die[i].isUsed) {
+                        this.die[i].isUsed=false;
+                    }
+                }
+                this.lastDieIndex=-1;
+            }
+        }
     }
+
 
 }
 
