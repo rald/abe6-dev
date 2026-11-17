@@ -325,6 +325,8 @@ Game.prototype.doInit = function() {
     this.generateBoggleBoard();
     this.getBoggleWords(this.board,this.trie);
 
+    console.log(this.words);
+
     this.die=[];
     for(var j=0;j<this.board.length;j++) {
         for(var i=0;i<this.board[j].length;i++) {
