@@ -1,17 +1,8 @@
 var pointer = {
-    x: 0,
-    y: 0,
-    clientX: 0,
-    clientY: 0,
-    isDown: false,
-    
-    // Dragging state properties
-    isDragging: false,
-    startX: 0,
-    startY: 0,
-    deltaX: 0,
-    deltaY: 0
-};
+	x: 0,
+	y: 0,
+	isDown: false,
+}
 
 function PointerHandler(element) {
     this.element = element;
@@ -36,30 +27,13 @@ PointerHandler.prototype.onPointerDown = function(event) {
     var coords = this.getCoordinates(event);
     pointer.x = coords.x;
     pointer.y = coords.y;
-    pointer.clientX = coords.clientX;
-    pointer.clientY = coords.clientY;
-    
     pointer.isDown = true;
-    pointer.isDragging = true;
-    pointer.startX = coords.x;
-    pointer.startY = coords.y;
-    pointer.deltaX = 0;
-    pointer.deltaY = 0;
 };
 
 PointerHandler.prototype.onPointerMove = function(event) {
     var coords = this.getCoordinates(event);
-    
-    // Update delta if dragging is active
-    if (pointer.isDown) {
-        pointer.deltaX = coords.x - pointer.x;
-        pointer.deltaY = coords.y - pointer.y;
-    }
-
     pointer.x = coords.x;
     pointer.y = coords.y;
-    pointer.clientX = coords.clientX;
-    pointer.clientY = coords.clientY;
 };
 
 PointerHandler.prototype.onPointerUp = function(event) {
@@ -70,13 +44,7 @@ PointerHandler.prototype.onPointerUp = function(event) {
     var coords = this.getCoordinates(event);
     pointer.x = coords.x;
     pointer.y = coords.y;
-    pointer.clientX = coords.clientX;
-    pointer.clientY = coords.clientY;
-    
     pointer.isDown = false;
-    pointer.isDragging = false;
-    pointer.deltaX = 0;
-    pointer.deltaY = 0;
 };
 
 PointerHandler.prototype.getCoordinates = function(event) {

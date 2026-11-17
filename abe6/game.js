@@ -22,6 +22,7 @@ Game = function(canvasId) {
     this.remainingTime = 0;
 
     this.gameState = this.GameState.LOAD;
+	this.handler = new PointerHandler(canvas);
 
 	this.preloadCompleteTime = null;
 	this.loadedAssets = {};
@@ -42,6 +43,8 @@ Game = function(canvasId) {
     this.trie=null;    
     this.board=null;
     this.words=null;
+    this.dice=null;
+    this.die=null;
 };
 
 Game.prototype.drawProgressBar = function(percent) {
@@ -321,33 +324,34 @@ Game.prototype.doInit = function() {
 
     this.generateBoggleBoard();
     this.getBoggleWords(this.board,this.trie);
-    console.table(this.words);
+
+    this.die=[];
+    for(var j=0;j<this.board.length;j++) {
+        for(var i=0;i<this.board[j].length;i++) {
+
+            var g=4;
+            var s=32;
+            var cx=(canvas.width-(s+g)*this.board.length)/2-(s+g)/2;
+            var cy=canvas.height-(s+g)*this.board.length-(s+g)/2;
+            var x=i*(s+g)+Math.floor(s/2)+s/2+cx;
+            var y=j*(s+g)+Math.floor(s/2)+s/2+cy;                         
+
+            this.die.push(new Die(this.diceFont,this.board[j][i],x,y,s));
+        }    
+    }   
 
     this.gameState=this.GameState.PLAY;
 }
 
 Game.prototype.doPlay = function() {
     Graphics.clrscr(this.ctx, palette[0]);
-    Graphics.fillRect(this.ctx,0,0,canvas.width,canvas.height,palette[0]);
+    Graphics.fillRect(this.ctx,0,0,canvas.width,canvas.height,palette[10]);
 
-    for(var j=0;j<this.board.length;j++) {
-        for(var i=0;i<this.board[j].length;i++) {
+    for(var i=0;i<this.die.length;i++) {
+        this.die[i].handleEvents(pointer);
+        this.die[i].draw(this.ctx);
+    }
 
-            var g=4;
-            var w=32;
-            var h=32;
-            var cx=(canvas.width-(32+g)*this.board.length)/2;
-            var cy=canvas.height-(32+g)*this.board.length-8;
-            var x=i*(w+g)+cx;
-            var y=j*(h+g)+cy;
-            var dx=i*(w+g)+Math.floor(w/2)+cx;
-            var dy=j*(h+g)+Math.floor(h/2)+cy;
-
-            Graphics.drawRect(this.ctx,x,y,32,32,palette[12]);
-
-            this.diceFont.fillText(this.ctx,this.board[j][i],dx,dy,palette[12]);
-        }    
-    }    
 }
 
 Game.prototype.doEnd = function() {
