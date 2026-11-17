@@ -41,6 +41,7 @@ Game = function(canvasId) {
 
     this.trie=null;    
     this.board=null;
+    this.words=null;
 };
 
 Game.prototype.drawProgressBar = function(percent) {
@@ -219,6 +220,99 @@ Game.prototype.generateBoggleBoard=function() {
   }
 }
 
+function scoreWord(word) {
+  var length = word.length;
+  if (length < 3) {
+    return 0;
+  }
+  if (length <= 4) {
+    return 1;
+  }
+  if (length === 5) {
+    return 2;
+  }
+  if (length === 6) {
+    return 3;
+  }
+  if (length === 7) {
+    return 5;
+  }
+  return 11;
+}
+
+Game.prototype.getBoggleWords=function(board, trie) {
+  var rows = board.length;
+  var cols = board[0].length;
+  var foundWordsMap = Object.create(null);
+  var visited = [];
+
+  for (var r = 0; r < rows; r++) {
+    visited[r] = [];
+    for (var c = 0; c < cols; c++) {
+      visited[r][c] = false;
+    }
+  }
+
+  var directions = [
+    [-1, -1], [-1, 0], [-1, 1],
+    [0, -1],           [0, 1],
+    [1, -1],  [1, 0],  [1, 1]
+  ];
+
+  function dfs(r, c, node, currentWord) {
+    var tile = board[r][c].toUpperCase();
+    var currNode = node;
+
+    for (var i = 0; i < tile.length; i++) {
+      var ch = tile.charAt(i);
+      if (!currNode.children[ch]) {
+        return;
+      }
+      currNode = currNode.children[ch];
+    }
+
+    var nextWord = currentWord + tile;
+
+    if (currNode.isEndOfWord) {
+      foundWordsMap[nextWord] = true;
+    }
+
+    visited[r][c] = true;
+
+    for (var d = 0; d < directions.length; d++) {
+      var nr = r + directions[d][0];
+      var nc = c + directions[d][1];
+      if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && !visited[nr][nc]) {
+        dfs(nr, nc, currNode, nextWord);
+      }
+    }
+
+    visited[r][c] = false;
+  }
+
+  for (var rStart = 0; rStart < rows; rStart++) {
+    for (var cStart = 0; cStart < cols; cStart++) {
+      dfs(rStart, cStart, trie.root, '');
+    }
+  }
+
+  this.words = Object.keys(foundWordsMap);
+  this.words.sort(function (a, b) {
+    var scoreDiff = scoreWord(b) - scoreWord(a);
+    if (scoreDiff !== 0) {
+      return scoreDiff;
+    }
+    if (a < b) {
+      return -1;
+    }
+    if (a > b) {
+      return 1;
+    }
+    return 0;
+  });
+
+}
+
 
 Game.prototype.doInit = function() {
     this.messages=[];
@@ -226,6 +320,8 @@ Game.prototype.doInit = function() {
     this.messagesDelay=1000;
 
     this.generateBoggleBoard();
+    this.getBoggleWords(this.board,this.trie);
+    console.table(this.words);
 
     this.gameState=this.GameState.PLAY;
 }
