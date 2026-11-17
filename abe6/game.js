@@ -169,6 +169,12 @@ Game.prototype.timeTick = function() {
         this.remainingTime = this.allottedTime - this.currentTime;
         if (this.remainingTime <= 0) {
             this.remainingTime = 0;
+
+            for(var i=0;i<this.die.length;i++) {
+                this.die[i].isUsed=false;
+                this.die[i].state=this.die[i].DieState.UP;
+           }
+            
             this.addMessage("Time is up!");
             this.gameState = this.GameState.STOP;
         }
@@ -386,7 +392,7 @@ Game.prototype.isValidMove=function(a,b) {
 
 Game.prototype.doPlay = function() {
 
-    Graphics.clrscr(this.ctx, palette[0]);
+    Graphics.clrscr(this.ctx, palette[10]);
 
     this.hudFont.fillText(this.ctx,"SCORE "+this.score.toString().padStart(7,' '),4,4,palette[12]);
 
@@ -423,7 +429,7 @@ Game.prototype.doPlay = function() {
                         this.guessed[k]=true;
                         this.points=Game.scoreWord(this.word);
                         this.score+=this.points;
-                        this.addMessage("Plus "+this.points+" points.");
+                        this.addMessage("Plus "+this.points+" "+(this.points>1?"points":"point")+".");
                     }
                 } else {
                     this.addMessage("\""+this.word+"\" not found.");
@@ -461,6 +467,9 @@ Game.prototype.doStop = function() {
 
     this.hudFont.fillText(this.ctx,"Game Over",(this.canvas.width-9*16)/2,16*12,palette[12]);
 
+    for(var i=0;i<this.die.length;i++) {
+        this.die[i].draw(this.ctx);
+    }
 }
 
 Game.prototype.draw = function() {
